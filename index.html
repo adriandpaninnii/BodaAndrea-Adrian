@@ -137,18 +137,7 @@
     </form>
   </div>
 
-  <!-- Lista y export -->
-  <div class="section">
-    <h2>Lista de Invitados</h2>
-    <p>Descarga la lista de confirmaciones (Excel)</p>
-    <button onclick="exportarExcel()">📥 Descargar Excel</button>
-  </div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
 <script>
-const endpoint = "https://script.google.com/macros/s/AKfycbzI0xoXAkrs0XRJs0DTi0xTh6zQyZoShztEC9mt1--oQicoTINYkSGYP21135QQcz5k/exec";
-
 const eventDate = new Date("2025-11-16T21:00:00").getTime();
 setInterval(() => {
   const now = Date.now();
@@ -167,6 +156,7 @@ setInterval(() => {
   }
 },1000);
 
+// Modal galería
 const modal=document.getElementById("modal");
 const modalImg=document.getElementById("imgGrande");
 const closeBtn=document.querySelector(".close");
@@ -174,7 +164,6 @@ document.querySelectorAll(".fotos img").forEach(img=>{ img.addEventListener("cli
 closeBtn.addEventListener("click",()=>{ modal.style.display="none"; });
 modal.addEventListener("click",(e)=>{ if(e.target===modal) modal.style.display="none"; });
 
-let invitados=[];
 const listaAcompanantes=document.getElementById("listaAcompanantes");
 const asistira=document.getElementById("asistira");
 const camposExtra=document.getElementById("camposExtra");
@@ -262,7 +251,7 @@ document.addEventListener("click",function(e){
 
 document.querySelectorAll("input, select").forEach(el=>{ el.addEventListener("input",validarFormulario); el.addEventListener("change",validarFormulario); });
 
-document.getElementById("rsvpForm").addEventListener("submit",async function(e){
+document.getElementById("rsvpForm").addEventListener("submit",function(e){
   e.preventDefault();
   validarFormulario();
   if(btnEnviar.disabled){ alert("⚠️ Por favor completa todos los campos requeridos."); return; }
@@ -271,64 +260,31 @@ document.getElementById("rsvpForm").addEventListener("submit",async function(e){
   const telefono=document.getElementById("telefono").value.trim();
   const respuesta=asistira.value;
 
-  // Crear solo los invitados de este envío
-  const invitadosNuevos=[];
+  let mensaje=`📋 Confirmación de asistencia\n👤 Nombre: ${nombre}\n`;
+  mensaje+=respuesta==="si"?"✅ Asistirá: Sí\n":"❌ Asistirá: No\n";
 
-  // Invitado principal
-  invitadosNuevos.push({ Nombre:nombre, Tipo:"Adulto", Asistira:respuesta, Relacion:"Principal", Edad:"", Telefono:telefono });
-
-  // Acompañantes
-  Array.from(document.querySelectorAll(".acompanante")).forEach(i=>{
+  const acomp=[];
+  document.querySelectorAll(".acompanante").forEach(i=>{
     const div=i.parentElement;
     const llevaNino=div.querySelector(".llevaNino").checked;
     const edadNino=div.querySelector(".edadNinoAcompanante").value.trim();
-    if(llevaNino && edadNino){
-      invitadosNuevos.push({ Nombre:i.value.trim()+" - Niño: "+edadNino, Tipo:"Niño", Asistira:"si", Relacion:"Niño de "+nombre, Edad:edadNino, Telefono:telefono });
-    } else {
-      invitadosNuevos.push({ Nombre:i.value.trim(), Tipo:"Adulto", Asistira:"si", Relacion:"Acompañante de "+nombre, Edad:"", Telefono:telefono });
+    if(i.value.trim()){
+      if(llevaNino && edadNino){ acomp.push(`${i.value.trim()} - Niño: ${edadNino}`); }
+      else { acomp.push(i.value.trim()); }
     }
   });
-
-  // WhatsApp
-  let mensaje=`📋 Confirmación de asistencia\n👤 Nombre: ${nombre}\n`;
-  mensaje+=respuesta==="si"?"✅ Asistirá: Sí\n":"❌ Asistirá: No\n";
-  const acompañantesMsg=invitadosNuevos.slice(1).map(f=>f.Nombre);
-  if(acompañantesMsg.length) mensaje+=`👥 Acompañantes: ${acompañantesMsg.join(", ")}\n`;
+  if(acomp.length) mensaje+=`👥 Acompañantes: ${acomp.join(", ")}\n`;
   if(telefono) mensaje+=`📱 Teléfono: ${telefono}\n`;
+
   window.open(`https://wa.me/526142754889?text=${encodeURIComponent(mensaje)}`,"_blank");
-
-  // Enviar a Google Sheets
-  try{
-    await fetch(endpoint, {
-      method: "POST",
-      body: JSON.stringify(invitadosNuevos),
-      headers: { "Content-Type": "application/json" }
-    });
-  } catch(err){ console.error("Error enviando a Sheets:", err); }
-
-  // Exportar Excel local
-  invitados.push(...invitadosNuevos);
-  const hoja=XLSX.utils.json_to_sheet(invitados);
-  const libro=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(libro,hoja,"Confirmaciones");
-  XLSX.writeFile(libro,"Confirmaciones_Boda.xlsx");
+  alert("✅ Tu confirmación ha sido enviada por WhatsApp.");
 
   this.reset();
   camposExtra.style.display="none";
   listaAcompanantes.innerHTML="";
   listaAcompanantes.style.display="none";
   validarFormulario();
-  alert("✅ Tu confirmación ha sido registrada.");
 });
-
-// Exportar Excel manual
-function exportarExcel(){
-  if(invitados.length===0){ alert("⚠️ No hay confirmaciones registradas todavía."); return; }
-  const hoja=XLSX.utils.json_to_sheet(invitados);
-  const libro=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(libro,hoja,"Confirmaciones");
-  XLSX.writeFile(libro,"Confirmaciones_Boda.xlsx");
-}
 </script>
 </body>
 </html>
